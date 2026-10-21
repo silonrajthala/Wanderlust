@@ -12,6 +12,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust the hosting proxy so Laravel can detect HTTPS.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class,
         ]);
@@ -21,17 +24,24 @@ $app = Application::configure(basePath: dirname(__DIR__))
     })
     ->create();
 
-// Configure writable runtime paths for Vercel.
+// Use a writable bootstrap path on Vercel.
 $app->useBootstrapPath('/tmp/laravel-bootstrap');
 
+// Create required writable runtime directories.
 foreach ([
     '/tmp/laravel-bootstrap/cache',
-    '/tmp/laravel-views',
-    '/tmp/laravel-sessions',
+    '/tmp/laravel-storage/app',
+    '/tmp/laravel-storage/framework/cache/data',
+    '/tmp/laravel-storage/framework/sessions',
+    '/tmp/laravel-storage/framework/views',
+    '/tmp/laravel-storage/logs',
 ] as $directory) {
     if (! is_dir($directory)) {
-        mkdir($directory, 0777, true);
+        mkdir($directory, 0775, true);
     }
 }
+
+// Use writable storage for Laravel runtime files.
+$app->useStoragePath('/tmp/laravel-storage');
 
 return $app;
