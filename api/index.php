@@ -1,59 +1,45 @@
+
 <?php
 
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Http\Kernel;
-use Illuminate\Contracts\Debug\ExceptionHandler;
-use Illuminate\Support\Facades\Facade;
-use Illuminate\Support\Facades\Route;
 
 define('LARAVEL_START', microtime(true));
 
-error_reporting(E_ALL);
-ini_set('display_errors', '0');
-ini_set('log_errors', '1');
+$root = dirname(__DIR__);
 
 try {
-    $basePath = dirname(__DIR__);
+    require $root . '/vendor/autoload.php';
 
-    // Load Composer
-    require $basePath . '/vendor/autoload.php';
+    $app = require $root . '/bootstrap/app.php';
 
-    error_log('[DIAG] Composer autoload loaded');
+    // Ensure runtime directories exist.
+    foreach ([
+        '/tmp/laravel-bootstrap/cache',
+        '/tmp/laravel-storage/app',
+        '/tmp/laravel-storage/framework/cache/data',
+        '/tmp/laravel-storage/framework/sessions',
+        '/tmp/laravel-storage/framework/views',
+        '/tmp/laravel-storage/logs',
+    ] as $directory) {
+        if (! is_dir($directory)
+            && ! mkdir($directory, 0775, true)
+            && ! is_dir($directory)) {
+            throw new RuntimeException(
+                "Cannot create directory: {$directory}"
+            );
+        }
+    }
 
-    // Bootstrap Laravel
-    $app = require_once $basePath . '/bootstrap/app.php';
-
-    error_log('[DIAG] Laravel app created');
-
-    // Check application bindings before handling request
-    error_log(
-        '[DIAG] View bound before boot: ' .
-        ($app->bound('view') ? 'YES' : 'NO')
-    );
-
-    // Resolve and bootstrap the HTTP kernel
-    $kernel = $app->make(Kernel::class);
-
-    error_log('[DIAG] HTTP kernel resolved');
-
-    $kernel->bootstrap();
-
-    error_log('[DIAG] HTTP kernel bootstrapped');
-
-    error_log(
-        '[DIAG] View bound after boot: ' .
-        ($app->bound('view') ? 'YES' : 'NO')
-    );
-
-    error_log(
-        '[DIAG] View service provider registered: ' .
-        ($app->getProvider(
-            \Illuminate\View\ViewServiceProvider::class
-        ) ? 'YES' : 'NO')
-    );
-
-    // Handle request through Laravel's HTTP kernel
+    // Capture the incoming request.
     $request = Request::capture();
+
+    // Register the request instance in Laravel's container.
+    $app->instance('request', $request);
+    $app->instance('Illuminate\Http\Request', $request);
+
+    // Use Laravel's standard HTTP kernel lifecycle.
+    $kernel = $app->make(Kernel::class);
 
     $response = $kernel->handle($request);
 
@@ -62,14 +48,14 @@ try {
     $kernel->terminate($request, $response);
 
 } catch (\Throwable $e) {
-    error_log('[DIAG] FATAL: ' . get_class($e));
-    error_log('[DIAG] MESSAGE: ' . $e->getMessage());
-    error_log('[DIAG] FILE: ' . $e->getFile());
-    error_log('[DIAG] LINE: ' . $e->getLine());
-    error_log('[DIAG] TRACE: ' . $e->getTraceAsString());
+    error_log('[LARAVEL ORIGINAL ERROR] ' . get_class($e));
+    error_log('[LARAVEL ORIGINAL MESSAGE] ' . $e->getMessage());
+    error_log('[LARAVEL ORIGINAL FILE] ' . $e->getFile()
+        . ':' . $e->getLine());
+    error_log('[LARAVEL ORIGINAL TRACE] ' . $e->getTraceAsString());
 
     http_response_code(500);
     header('Content-Type: text/plain; charset=UTF-8');
 
-    echo "Laravel application error. Check Vercel Runtime Logs.";
+    echo 'Laravel initialization failed. Check Vercel Runtime Logs.';
 }
