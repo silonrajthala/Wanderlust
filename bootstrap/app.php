@@ -4,18 +4,28 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
-return Application::configure(basePath: dirname(__DIR__))
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-               // Add this line to register your custom middleware
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->create();
+
+// Use a writable location for Laravel's package manifest.
+$app->useBootstrapPath('/tmp/laravel-bootstrap');
+
+// Ensure the writable cache directory exists.
+if (! is_dir('/tmp/laravel-bootstrap/cache')) {
+    mkdir('/tmp/laravel-bootstrap/cache', 0777, true);
+}
+
+return $app;
