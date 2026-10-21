@@ -2,60 +2,54 @@
 <?php
 
 use Illuminate\Http\Request;
-use Illuminate\Contracts\Http\Kernel;
 
 define('LARAVEL_START', microtime(true));
 
 $root = dirname(__DIR__);
 
 try {
+    // Load Composer.
     require $root . '/vendor/autoload.php';
 
-    $app = require $root . '/bootstrap/app.php';
-
-    // Ensure runtime directories exist.
-    foreach ([
+    // Create writable runtime directories BEFORE bootstrapping Laravel.
+    $directories = [
         '/tmp/laravel-bootstrap/cache',
         '/tmp/laravel-storage/app',
         '/tmp/laravel-storage/framework/cache/data',
         '/tmp/laravel-storage/framework/sessions',
         '/tmp/laravel-storage/framework/views',
         '/tmp/laravel-storage/logs',
-    ] as $directory) {
-        if (! is_dir($directory)
-            && ! mkdir($directory, 0775, true)
-            && ! is_dir($directory)) {
-            throw new RuntimeException(
-                "Cannot create directory: {$directory}"
-            );
+        '/tmp/laravel-views',
+    ];
+
+    foreach ($directories as $directory) {
+        if (! is_dir($directory)) {
+            if (! mkdir($directory, 0775, true) && ! is_dir($directory)) {
+                throw new RuntimeException(
+                    "Unable to create runtime directory: {$directory}"
+                );
+            }
         }
     }
 
-    // Capture the incoming request.
-    $request = Request::capture();
+    // Load the Laravel application.
+    $app = require $root . '/bootstrap/app.php';
 
-    // Register the request instance in Laravel's container.
-    $app->instance('request', $request);
-    $app->instance('Illuminate\Http\Request', $request);
-
-    // Use Laravel's standard HTTP kernel lifecycle.
-    $kernel = $app->make(Kernel::class);
-
-    $response = $kernel->handle($request);
-
-    $response->send();
-
-    $kernel->terminate($request, $response);
+    // Capture the HTTP request and let Laravel handle its lifecycle.
+    $app->handleRequest(Request::capture());
 
 } catch (\Throwable $e) {
-    error_log('[LARAVEL ORIGINAL ERROR] ' . get_class($e));
-    error_log('[LARAVEL ORIGINAL MESSAGE] ' . $e->getMessage());
-    error_log('[LARAVEL ORIGINAL FILE] ' . $e->getFile()
-        . ':' . $e->getLine());
-    error_log('[LARAVEL ORIGINAL TRACE] ' . $e->getTraceAsString());
+    // Log the ORIGINAL exception to Vercel Runtime Logs.
+    error_log('[LARAVEL ERROR] ' . get_class($e));
+    error_log('[LARAVEL MESSAGE] ' . $e->getMessage());
+    error_log('[LARAVEL FILE] ' . $e->getFile());
+    error_log('[LARAVEL LINE] ' . $e->getLine());
+    error_log('[LARAVEL TRACE] ' . $e->getTraceAsString());
 
-    http_response_code(500);
-    header('Content-Type: text/plain; charset=UTF-8');
+    if (! headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=UTF-8');
+    }
 
     echo 'Laravel initialization failed. Check Vercel Runtime Logs.';
 }
