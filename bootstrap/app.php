@@ -1,31 +1,21 @@
-<?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
-
-$app = Application::configure(basePath: dirname(__DIR__))
-    ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
-        health: '/up',
-    )
-    ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'auth' => \App\Http\Middleware\Authenticate::class,
-        ]);
-    })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })
-    ->create();
-
-// Use a writable location for Laravel's package manifest.
 $app->useBootstrapPath('/tmp/laravel-bootstrap');
 
-// Ensure the writable cache directory exists.
-if (! is_dir('/tmp/laravel-bootstrap/cache')) {
-    mkdir('/tmp/laravel-bootstrap/cache', 0777, true);
+// Create writable runtime directories.
+$directories = [
+    '/tmp/laravel-bootstrap/cache',
+    '/tmp/laravel-bootstrap/cache/data',
+    '/tmp/laravel-bootstrap/cache',
+    '/tmp/laravel-views',
+    '/tmp/laravel-sessions',
+];
+
+foreach ($directories as $directory) {
+    if (! is_dir($directory)) {
+        mkdir($directory, 0777, true);
+    }
 }
 
-return $app;
+// Store compiled Blade templates in /tmp.
+$app->useEnvironmentPath(dirname(__DIR__));
+
