@@ -84,8 +84,8 @@ Route::middleware('auth')->group(function () {
 
 //Routes for all admin users
 // Admin login routes - with guest middleware to prevent logged-in admins from accessing
-Route::get('/admin/login', [AdminLoginController::class, 'index'])->name('admin.login');
-Route::post('/admin/login', [AdminLoginController::class, 'login'])->name('admin.login.submit');
+Route::get('/admin-login', [AdminLoginController::class, 'index'])->name('admin.login');
+Route::post('/admin-login', [AdminLoginController::class, 'login'])->name('admin.login.submit');
 
 // Admin logout route
 // Instead of two separate routes
