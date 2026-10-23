@@ -1047,7 +1047,7 @@
             <hr class="my-4">
             <div class="row">
                 <div class="col-md-6">
-                    <p>&copy; 2024 Wanderlust Travel. All rights reserved.</p>
+                    <p>© 2026 Wanderlust Travel. Images sourced from the internet and belong to their respective owners.</p>
                 </div>
                 <div class="col-md-6 text-end">
                     <p>IATA Certified Travel Agency</p>

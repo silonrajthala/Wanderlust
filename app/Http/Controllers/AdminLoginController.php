@@ -27,6 +27,7 @@ class AdminLoginController extends Controller
             'email' => 'required|email',
             'password' => 'required',
         ]);
+
         // Attempt to authenticate with admin guard
         if (Auth::guard('admin')->attempt($credentials)) {
             $request->session()->regenerate();
